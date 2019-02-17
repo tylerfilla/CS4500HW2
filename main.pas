@@ -291,9 +291,6 @@ begin
           SetLength(AllCircles[ArrowSrc - 1].Arrows, Length(AllCircles[ArrowSrc - 1].Arrows) + 1);
           AllCircles[ArrowSrc - 1].Arrows[High(AllCircles[ArrowSrc - 1].Arrows)] := @AllCircles[ArrowDest - 1];
         end;
-
-      { Set the first circle as current. }
-      CurrentCircle := @AllCircles[0];
     except
       { Rethrow miscellaneous I/O errors under catch-all exception. }
       on E: EInOutError do
@@ -340,6 +337,20 @@ var
   { The last randomly-chosen arrow index. }
   ChosenArrow: integer;
 begin
+  { Set the first circle as current. }
+  CurrentCircle := @AllCircles[0];
+
+  { Reset some statistics. }
+  UniqueCirclesMarked := 0;
+  TotalCircleMarks := 0;
+  MaxSingleCircleMarks := 0;
+
+  { Clear all circles. The NumArrows variable is repurposed as an index. }
+  for NumArrows := 0 to N do
+    begin
+      AllCircles[NumArrows - 1].Marks := 0;
+    end;
+
   { Get a new random sequence. }
   Randomize();
 
@@ -409,10 +420,6 @@ end;
 
 { Program entry point. }
 begin
-  UniqueCirclesMarked := 0;
-  TotalCircleMarks := 0;
-  MaxSingleCircleMarks := 0;
-
   { The output file. This will be used to produce a transcript of the game. }
   AssignFile(OutputFile, C_FILENAME_OUT);
 
@@ -440,6 +447,10 @@ begin
   end;
 
   { Play the game. }
+  PlayGame();
+  PlayGame();
+  PlayGame();
+  PlayGame();
   PlayGame();
 
   { Close the output file. }
