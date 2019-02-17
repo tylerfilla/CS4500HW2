@@ -123,6 +123,24 @@ type
     Arrows: array of TCirclePtr;
   end;
 
+  {*
+   * A gameplay stats record.
+   *
+   * This holds the gameplay statistics from one game round. After a round has
+   * been played, a record of this type is inserted into a dynamic array, and
+   * then all stats are crunched after all rounds have been played.
+   *}
+  TLastPlayStats = record
+    { The greatest number of marks given to any circle. }
+    MaxMarks: integer;
+
+    { The smallest number of marks given to any circle. }
+    MinMarks: integer;
+
+    { The total number of marks given to all circles. }
+    TotalMarks: integer;
+  end;
+
 var
   { The output text file. }
   OutputFile: TextFile;
