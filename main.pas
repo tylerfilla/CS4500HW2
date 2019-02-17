@@ -214,8 +214,8 @@ begin
           raise EInputFileException.create(Format('Failed to read N: %s: %s', [E.ClassName, E.Message]));
       end;
 
-      { Check range of N (from 2 to 10). }
-      if (N < 2) or (N > 10) then
+      { Check range of N (from 2 to 20). }
+      if (N < 2) or (N > 20) then
         raise EInputFileException.create(Format('N is out of range: %d', [N]));
 
       { Allocate N circles. }
