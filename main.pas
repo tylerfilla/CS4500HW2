@@ -340,6 +340,16 @@ var
   { The last randomly-chosen arrow index. }
   ChosenArrow: integer;
 begin
+  { Get a new random sequence. }
+  Randomize();
+
+  MyWriteLn('Gameplay is about to begin.');
+  MyWriteLn('');
+
+  { Mark the first circle as current. }
+  UniqueCirclesMarked := 1;
+  MarkCurrentCircle();
+
   { Core gameplay loop. Stops after all circles have been marked. }
   while (UniqueCirclesMarked < N) do
     begin
@@ -383,6 +393,18 @@ begin
           MyWriteLn(Format('-> Visited %d unique circles out of %d so far', [UniqueCirclesMarked, N]));
         end;
     end;
+
+  MyWriteLn('');
+  MyWriteLn('Gameplay is complete!');
+
+  MyWriteLn('');
+  MyWriteLn('~~~ LAST RUN STATISTICS ~~~');
+
+  MyWriteLn(Format('I. There were N=%d circles in play. This was prescribed by the input file.', [N]));
+  MyWriteLn(Format('II. There were K=%d arrow(s) in play. This was prescribed by the input file.', [K]));
+  MyWriteLn(Format('III. In total, %d marks were distributed across all circles. Some circles may have received many marks depending on the graph construction.', [TotalCircleMarks]));
+  MyWriteLn(Format('IV. On average, each circle received %f marks.', [TotalCircleMarks / N]));
+  MyWriteLn(Format('V. In any one circle, the maxmimum number of marks was %d. All circles received at most this many marks during gameplay.', [MaxSingleCircleMarks]));  
 end;
 
 { Program entry point. }
@@ -417,30 +439,8 @@ begin
       end;
   end;
 
-  { Get a new random sequence. }
-  Randomize();
-
-  MyWriteLn('Gameplay is about to begin.');
-  MyWriteLn('');
-
-  { Mark the first circle as current. }
-  UniqueCirclesMarked := 1;
-  MarkCurrentCircle();
-
   { Play the game. }
   PlayGame();
-
-  MyWriteLn('');
-  MyWriteLn('Gameplay is complete!');
-
-  MyWriteLn('');
-  MyWriteLn('~~~ LAST RUN STATISTICS ~~~');
-
-  MyWriteLn(Format('I. There were N=%d circles in play. This was prescribed by the input file.', [N]));
-  MyWriteLn(Format('II. There were K=%d arrow(s) in play. This was prescribed by the input file.', [K]));
-  MyWriteLn(Format('III. In total, %d marks were distributed across all circles. Some circles may have received many marks depending on the graph construction.', [TotalCircleMarks]));
-  MyWriteLn(Format('IV. On average, each circle received %f marks.', [TotalCircleMarks / N]));
-  MyWriteLn(Format('V. In any one circle, the maxmimum number of marks was %d. All circles received at most this many marks during gameplay.', [MaxSingleCircleMarks]));
 
   { Close the output file. }
   CloseFile(OutputFile);
