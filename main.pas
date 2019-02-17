@@ -1,6 +1,6 @@
 {*
  * Tyler Filla
- * February 4, 2019
+ * February 18, 2019
  * CS 4500-001 :: Intro to Software Profession
  *
  * This program intends to implement the specified game and program behavior: A
@@ -14,7 +14,7 @@
  *
  * FILES: An input file containing a description of a strongly-connected digraph
  * must be supplied and named 'HW1infile.txt' in the current working directory.
- * A transcript will be produced in the file 'HW1fillaOutfile.txt'. These files
+ * A transcript will be produced in the file 'HW2fillaOutfile.txt'. These files
  * are considered mission critical, so I/O errors may cause early termination.
  *
  * INPUT FILE FORMAT: The input file must conform to a strict textual format:
@@ -55,6 +55,8 @@
  * the second line), but only four are defined in the lines that follow. The
  * program will abort on account of premature EOF.
  *
+ * TODO: Add an example of a bad input file because not strongly connected.
+ *
  * INTERNALS: The program represents each circle (node) as a record with three
  * members: Number, Marks, and Arrows. The Number integer associates each circle
  * with its numeric index (starting with 1, not 0). The Marks integer counts the
@@ -86,7 +88,7 @@ const
   C_FILENAME_IN = 'HW1infile.txt';
 
   { The name of the output file. }
-  C_FILENAME_OUT = 'HW1fillaOutfile.txt';
+  C_FILENAME_OUT = 'HW2fillaOutfile.txt';
 
 type
   {*
