@@ -166,6 +166,12 @@ var
   { The maximum number of marks in any one circle. }
   MaxSingleCircleMarks: integer;
 
+  { The minimum number of marks in any one circle. }
+  MinSingleCircleMarks: integer;
+
+  { An iteration index. }
+  i: integer;
+
 {*
  * Write output to stdout and the output file.
  *
@@ -335,6 +341,7 @@ begin
   UniqueCirclesMarked := 0;
   TotalCircleMarks := 0;
   MaxSingleCircleMarks := 0;
+  MinSingleCircleMarks := 0;
 
   { Clear all marks. }
   for i := 0 to N do
@@ -360,6 +367,10 @@ begin
   { Update maximum mark count if needed. }
   if CurrentCircle^.Marks > MaxSingleCircleMarks then
     MaxSingleCircleMarks := CurrentCircle^.Marks;
+
+  { Update minimum mark count if needed. }
+  if CurrentCircle^.Marks < MinSingleCircleMarks then
+    MinSingleCircleMarks := CurrentCircle^.Marks;
 
   MyWriteLn(Format('Marked circle %d (up to %d mark(s))', [CurrentCircle^.Number, CurrentCircle^.Marks]));
 end;
@@ -412,7 +423,7 @@ begin
         SetLength(OpenSet, 0);
         TempCircle := nil;
 
-        MyWriteLn(Format('-> Looking for a path from circle %d to circle %d', [CircleB^.Number, CircleA^.Number]));
+        MyWriteLn(Format('-> Looking for a path from circle %d to circle %d', [b, a]));
 
         { Ignore trivial cases where both circles are the same. }
         if CircleA = CircleB then
@@ -447,7 +458,7 @@ begin
               begin
                 MyWriteln('  -> NOT FOUND');
                 MyWriteln('');
-                MyWriteLn(Format('FAIL: No path from circle %d to circle %d!', [CircleB^.Number, CircleA^.Number]));
+                MyWriteLn(Format('FAIL: No path from circle %d to circle %d!', [b, a]));
                 MyWriteLn('The configured graph is not strongly-connected! Bailing out...');
                 MyWriteln('');
                 MyWriteLn('Please correct your input file to describe a strongly-connected digraph.');
@@ -455,7 +466,9 @@ begin
               end;
 
             { Pop the next circle from the array. }
-            TempCircle := OpenSet[High(OpenSet)];
+            TempCircle := OpenSet[Low(OpenSet)];
+            for i := 1 to Length(OpenSet) - 1 do
+              OpenSet[i - 1] := OpenSet[i];
             SetLength(OpenSet, Length(OpenSet) - 1);
 
             { Add all newly-reachable circles to open set. }
@@ -474,7 +487,7 @@ end;
 {*
  * Carry out the game.
  *}
-procedure PlayGame;
+function PlayGame: TLastPlayStats;
 var
   { The number of arrows from the current circle. This varies over gameplay. }
   NumArrows: integer;
@@ -484,12 +497,12 @@ var
 
   { The last randomly-chosen arrow index. }
   ChosenArrow: integer;
+
+  { The stats of the last play. }
+  PlayStats: TLastPlayStats;
 begin
   { Reset all circles. }
   ResetCircles;
-
-  { Get a new random sequence. }
-  Randomize();
 
   MyWriteLn('Gameplay is about to begin.');
   MyWriteLn('');
@@ -548,11 +561,18 @@ begin
   MyWriteLn('');
   MyWriteLn('~~~ LAST RUN STATISTICS ~~~');
 
+  { Record gameplay stats for single round. }
+  PlayStats.MaxMarks := MaxSingleCircleMarks;
+  PlayStats.MinMarks := MinSingleCircleMarks;
+  PlayStats.TotalMarks := TotalCircleMarks;
+
   MyWriteLn(Format('I. There were N=%d circles in play. This was prescribed by the input file.', [N]));
   MyWriteLn(Format('II. There were K=%d arrow(s) in play. This was prescribed by the input file.', [K]));
   MyWriteLn(Format('III. In total, %d marks were distributed across all circles. Some circles may have received many marks depending on the graph construction.', [TotalCircleMarks]));
   MyWriteLn(Format('IV. On average, each circle received %f marks.', [TotalCircleMarks / N]));
-  MyWriteLn(Format('V. In any one circle, the maxmimum number of marks was %d. All circles received at most this many marks during gameplay.', [MaxSingleCircleMarks]));  
+  MyWriteLn(Format('V. In any one circle, the maxmimum number of marks was %d. All circles received at most this many marks during gameplay.', [MaxSingleCircleMarks]));
+
+  PlayGame := PlayStats;
 end;
 
 { Program entry point. }
@@ -586,8 +606,12 @@ begin
   { Assert that the board is strongly-connected. }
   AssertConnectedness;
 
-  { Play the game. }
-  PlayGame;
+  { Get a new random sequence. }
+  Randomize();
+
+  { Play the game ten times. }
+  for i := 1 to 10 do
+    PlayGame;
 
   { Close the output file. }
   CloseFile(OutputFile);
