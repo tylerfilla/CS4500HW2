@@ -324,6 +324,29 @@ begin
 end;
 
 {*
+ * Reset all circles.
+ *}
+procedure ResetCircles;
+var
+  { Iteration index. }
+  i: integer;
+begin
+  { Clear stats. }
+  UniqueCirclesMarked := 0;
+  TotalCircleMarks := 0;
+  MaxSingleCircleMarks := 0;
+
+  { Clear all marks. }
+  for i := 0 to N do
+    begin
+      AllCircles[i - 1].Marks := 0;
+    end;
+
+  { Set the first circle as current. }
+  CurrentCircle := @AllCircles[0];
+end;
+
+{*
  * Mark the current circle.
  *}
 procedure MarkCurrentCircle;
@@ -342,6 +365,113 @@ begin
 end;
 
 {*
+ * Assert that the initialized board is strongly-connected. If such is the case,
+ * the program continues unimpeded. If not the case, the program aborts.
+ *
+ * Verification is performed with an exhaustive search from the perspective of
+ * each circle. For each pair of circles, the graph is searched for a path that
+ * connects the two circles in the pair.
+ *}
+procedure AssertConnectedness;
+var
+  { A multi-purpose iterator index. }
+  i: integer;
+
+  { The index of the first circle. }
+  a: integer;
+
+  { The first circle of the pair. }
+  CircleA: TCirclePtr;
+
+  { The index of the second circle. }
+  b: integer;
+
+  { The second circle of the pair. }
+  CircleB: TCirclePtr;
+
+  { The set of discovered circles yet to be explored. }
+  OpenSet: array of TCirclePtr;
+
+  { A temporary circle pointer. }
+  TempCircle: TCirclePtr;
+
+label
+  { A label to which jumping scans the next circle. }
+  NextCircle;
+
+begin
+  MyWriteLn('Verifying connectedness of the board');
+
+  { Choose pairs of circles. }
+  for a := 1 to N do
+    for b := 1 to N do
+      begin
+        { Get initialized for the search. }
+        CircleA := @AllCircles[a - 1];
+        CircleB := @AllCircles[b - 1];
+        SetLength(OpenSet, 0);
+        TempCircle := nil;
+
+        MyWriteLn(Format('-> Looking for a path from circle %d to circle %d', [CircleB^.Number, CircleA^.Number]));
+
+        { Ignore trivial cases where both circles are the same. }
+        if CircleA = CircleB then
+          begin
+            MyWriteLn('  -> Trivial case');
+            continue;
+          end;
+
+        { Add circle B to the open set. This kicks off the process. }
+        SetLength(OpenSet, Length(OpenSet) + 1);
+        OpenSet[High(OpenSet)] := CircleB;
+
+        { Try to find a path from circle B back to circle A. If we cannot, then
+          the system is not strongly-connected. }
+        while true do
+          begin
+            { Scan the open set for circle A. If we find circle A in the open
+              set, then we have discovered a path from circle B to circle A. }
+            for i := 1 to Length(OpenSet) do
+              begin
+                if OpenSet[i - 1] = CircleA then
+                  begin
+                    MyWriteLn(Format('  -> Found with %d nonterminal(s) remaining', [Length(OpenSet)]));
+                    goto NextCircle;
+                  end;
+              end;
+
+            { We bail out quickly when we discover paths. So, it follows that
+              if, at any point, the open set is empty, then there is no
+              connection (and, hence, the system is not strongly-connected). }
+            if Length(OpenSet) = 0 then
+              begin
+                MyWriteln('  -> NOT FOUND');
+                MyWriteln('');
+                MyWriteLn(Format('FAIL: No path from circle %d to circle %d!', [CircleB^.Number, CircleA^.Number]));
+                MyWriteLn('The configured graph is not strongly-connected! Bailing out...');
+                MyWriteln('');
+                MyWriteLn('Please correct your input file to describe a strongly-connected digraph.');
+                Halt;
+              end;
+
+            { Pop the next circle from the array. }
+            TempCircle := OpenSet[High(OpenSet)];
+            SetLength(OpenSet, Length(OpenSet) - 1);
+
+            { Add all newly-reachable circles to open set. }
+            for i := 1 to Length(TempCircle^.Arrows) do
+              begin
+                SetLength(OpenSet, Length(OpenSet) + 1);
+                OpenSet[High(OpenSet)] := TempCircle^.Arrows[i - 1];
+              end;
+          end;
+      NextCircle:
+      end;
+
+  MyWriteLn('This board is a strongly-connected digraph.');
+end;
+
+{*
  * Carry out the game.
  *}
 procedure PlayGame;
@@ -355,19 +485,8 @@ var
   { The last randomly-chosen arrow index. }
   ChosenArrow: integer;
 begin
-  { Set the first circle as current. }
-  CurrentCircle := @AllCircles[0];
-
-  { Reset some statistics. }
-  UniqueCirclesMarked := 0;
-  TotalCircleMarks := 0;
-  MaxSingleCircleMarks := 0;
-
-  { Clear all circles. The NumArrows variable is repurposed as an index. }
-  for NumArrows := 0 to N do
-    begin
-      AllCircles[NumArrows - 1].Marks := 0;
-    end;
+  { Reset all circles. }
+  ResetCircles;
 
   { Get a new random sequence. }
   Randomize();
@@ -397,7 +516,7 @@ begin
         begin
           MyWriteLn(Format('FAIL: Stuck on circle %d: No arrows to follow', [CurrentCircle^.Number]));
           MyWriteLn('The configured graph is not strongly-connected! Bailing out...');
-          Exit;
+          Halt;
         end;
 
       { Remember the current circle. }
@@ -464,12 +583,11 @@ begin
       end;
   end;
 
+  { Assert that the board is strongly-connected. }
+  AssertConnectedness;
+
   { Play the game. }
-  PlayGame();
-  PlayGame();
-  PlayGame();
-  PlayGame();
-  PlayGame();
+  PlayGame;
 
   { Close the output file. }
   CloseFile(OutputFile);
