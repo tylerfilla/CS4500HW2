@@ -3,6 +3,10 @@
  * February 18, 2019
  * CS 4500-001 :: Intro to Software Profession
  *
+ * IMPORTANT NOTE: The HW2 specification did not specify a change in the input
+ * file name, and I have not assumed such to be the case, so 'HW1infile.txt' is
+*  still the input file.
+ *
  * This program intends to implement the specified game and program behavior: A
  * strongly-connected digraph is drawn on an imaginary game board, and a marker
  * is randomly moved along the edges until all nodes have been visited. Each
@@ -55,7 +59,17 @@
  * the second line), but only four are defined in the lines that follow. The
  * program will abort on account of premature EOF.
  *
- * TODO: Add an example of a bad input file because not strongly connected.
+ * BAD INPUT FILE EXAMPLE:
+ * 4
+ * 4
+ * 1 4
+ * 2 1
+ * 2 4
+ * 4 3
+ *
+ * This is an example of a bad input file which does not specify a strongly-
+ * connected digraph. As you can see, with the four arrows specified, there are
+ * no arrows away from circle 3. The program will abort before gameplay.
  *
  * INTERNALS: The program represents each circle (node) as a record with three
  * members: Number, Marks, and Arrows. The Number integer associates each circle
@@ -66,7 +80,15 @@
  *
  * Basic statistics are kept in global variables as the game progresses. These
  * include tallies on total- and uniquely-marked circles, as well as a counter
- * for the total number of checkmarks drawn (visits made) overall.
+ * for the total number of checkmarks drawn (visits made) overall. Minima and
+ * maxima are also tracked for single circle mark counts.
+ *
+ * At the beginning of each game, these global variables are zeroed out. At the
+ * end of each game, they are copied into a per-game record which is pushed into
+ * a global array for future computations.
+ *
+ * After all games, these stored records are used to compute final post-gameplay
+ * statistics as specified.
  *
  * NOTE: All program output, less unhandled exceptions, is mirrored to the
  * output file via a custom "MyWriteLn" function that composes two "WriteLn"
@@ -142,6 +164,9 @@ type
   end;
 
 var
+  { An iteration index. }
+  i: integer;
+
   { The output text file. }
   OutputFile: TextFile;
 
@@ -169,8 +194,23 @@ var
   { The minimum number of marks in any one circle. }
   MinSingleCircleMarks: integer;
 
-  { An iteration index. }
-  i: integer;
+  { Tracker for all per-game stats. }
+  AllStats: array of TLastPlayStats;
+
+  { The sum of all total marks over all games. }
+  SumTotalMarks: integer;
+
+  { The maximum total marks over all games. }
+  MaxTotalMarks: integer;
+
+  { The minimum total marks over all games. }
+  MinTotalMarks: integer;
+
+  { The absolute maximum single circle marks over all games. }
+  AbsMaxSingleCircleMarks: integer;
+
+  { The absolute minimum single circle marks over all games. }
+  AbsMinSingleCircleMarks: integer;
 
 {*
  * Write output to stdout and the output file.
@@ -341,7 +381,7 @@ begin
   UniqueCirclesMarked := 0;
   TotalCircleMarks := 0;
   MaxSingleCircleMarks := 0;
-  MinSingleCircleMarks := 0;
+  MinSingleCircleMarks := 1000000;
 
   { Clear all marks. }
   for i := 0 to N do
@@ -556,9 +596,6 @@ begin
     end;
 
   MyWriteLn('');
-  MyWriteLn('Gameplay is complete!');
-
-  MyWriteLn('');
   MyWriteLn('~~~ LAST RUN STATISTICS ~~~');
 
   { Record gameplay stats for single round. }
@@ -577,6 +614,10 @@ end;
 
 { Program entry point. }
 begin
+  { Array initializations. }
+  SetLength(AllCircles, 0);
+  SetLength(AllStats, 0);
+
   { The output file. This will be used to produce a transcript of the game. }
   AssignFile(OutputFile, C_FILENAME_OUT);
 
@@ -587,7 +628,7 @@ begin
     on E: EInOutError do
       begin
         WriteLn(Format('Failed to open output file for write: %s', [E.Message]));
-        Exit;
+        Halt;
       end;
   end;
 
@@ -599,19 +640,65 @@ begin
       begin
         MyWriteLn(Format('Input file error: %s', [E.Message]));
         CloseFile(OutputFile);
-        Exit;
+        Halt;
       end;
   end;
 
-  { Assert that the board is strongly-connected. }
+  { Assert that the board is strongly-connected. This procedure is not
+    guaranteed to return given the chance the input is not strongly-connected. }
   AssertConnectedness;
 
-  { Get a new random sequence. }
-  Randomize();
+  { Seed a new random sequence. }
+  Randomize;
 
   { Play the game ten times. }
   for i := 1 to 10 do
-    PlayGame;
+    begin
+      SetLength(AllStats, Length(AllStats) + 1);
+      AllStats[High(AllStats)] := PlayGame;
+    end;
+
+  MyWriteLn('');
+  MyWriteLn('Gameplay is complete!');
+
+  MyWriteLn('');
+  MyWriteLn('~~~~~~ OVERALL STATISTICS ~~~~~~');
+
+  SumTotalMarks := 0;
+  MaxTotalMarks := 0;
+  MinTotalMarks := 1000000;
+  AbsMaxSingleCircleMarks := 0;
+  AbsMinSingleCircleMarks := 1000000;
+
+  { Accumulate stats for all games. }
+  for i := 1 to 10 do
+    begin
+      { Sum all totals. }
+      SumTotalMarks := SumTotalMarks + AllStats[i - 1].TotalMarks;
+
+      { Accumulate maximum total mark count. }
+      if AllStats[i - 1].TotalMarks > MaxTotalMarks then
+        MaxTotalMarks := AllStats[i - 1].TotalMarks;
+
+      { Accumulate minimum total mark count. }
+      if AllStats[i - 1].TotalMarks < MinTotalMarks then
+        MinTotalMarks := AllStats[i - 1].TotalMarks;
+
+      { Accumulate absolute maximum single circle mark count. }
+      if AllStats[i - 1].MaxMarks > AbsMaxSingleCircleMarks then
+        AbsMaxSingleCircleMarks := AllStats[i - 1].MaxMarks;
+
+      { Accumulate absolute minimum single circle mark count. }
+      if AllStats[i - 1].MinMarks < AbsMinSingleCircleMarks then
+        AbsMinSingleCircleMarks := AllStats[i - 1].MinMarks;
+    end;
+
+  MyWriteLn(Format('* On average, a total number of %f marks were distributed per game.', [SumTotalMarks/10]));
+  MyWriteLn(Format('* The lowest total number of marks given to a single circle is %d.', [MinTotalMarks]));
+  MyWriteLn(Format('* The highest total number of marks given to a single circle is %d.', [MaxTotalMarks]));
+  MyWriteLn(Format('* On average, each circle received %f marks.', [SumTotalMarks/10/N]));
+  MyWriteLn(Format('* The lowest number of marks given to a single circle is %d.', [AbsMinSingleCircleMarks]));
+  MyWriteLn(Format('* The highest number of marks given to a single circle is %d.', [AbsMaxSingleCircleMarks]));
 
   { Close the output file. }
   CloseFile(OutputFile);
