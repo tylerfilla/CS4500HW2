@@ -112,6 +112,9 @@ const
   { The name of the output file. }
   C_FILENAME_OUT = 'HW2fillaOutfile.txt';
 
+  { The maximum number of marks to distribute in a game. }
+  C_MAXIMUM_MARKS = 1000000;
+
 type
   {*
    * An exception for input file errors.
@@ -381,7 +384,7 @@ begin
   UniqueCirclesMarked := 0;
   TotalCircleMarks := 0;
   MaxSingleCircleMarks := 0;
-  MinSingleCircleMarks := 1000000;
+  MinSingleCircleMarks := C_MAXIMUM_MARKS;
 
   { Clear all marks. }
   for i := 0 to N do
@@ -413,6 +416,13 @@ begin
     MinSingleCircleMarks := CurrentCircle^.Marks;
 
   MyWriteLn(Format('Marked circle %d (up to %d mark(s))', [CurrentCircle^.Number, CurrentCircle^.Marks]));
+
+  if TotalCircleMarks > C_MAXIMUM_MARKS then
+    begin
+      MyWriteLn('');
+      MyWriteLn(Format('FAIL: Reached maximum number of marks (%d)!', [C_MAXIMUM_MARKS]));
+      Halt;
+    end;
 end;
 
 {*
@@ -666,9 +676,9 @@ begin
 
   SumTotalMarks := 0;
   MaxTotalMarks := 0;
-  MinTotalMarks := 1000000;
+  MinTotalMarks := C_MAXIMUM_MARKS;
   AbsMaxSingleCircleMarks := 0;
-  AbsMinSingleCircleMarks := 1000000;
+  AbsMinSingleCircleMarks := C_MAXIMUM_MARKS;
 
   { Accumulate stats for all games. }
   for i := 1 to 10 do
